@@ -1,6 +1,8 @@
 
 var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
 var answers = [];
+var score = 0;
+var totalQuestions;
 window.onload = function() {
     document.getElementById('quiz_form').style.display = "flex";
     document.getElementById('studyGuideText').innerHTML = "";
@@ -136,18 +138,68 @@ socket.on('studyGuideGenerated', function(data) {
 
 socket.on('quizGenerated', function(data) {
     var quizText = document.getElementById('quizText');
-    console.log(data.quiz);
-    var questions = data.quiz[0];
-    answers = data.quiz[1];
+    var questions = data.quiz[0]; // Assuming this structure from your existing code
+    answers = data.quiz[1]; // Assuming this is where correct answers are stored
     var questionText = "";
-    for(var i = 0; i < questions.length; i++){
-        console.log(questions[i]);
-        questionText += "<h3>Question " + questions[i]["number"] + "</h3>";
-        questionText += "<p>" + questions[i]["text"] + "</p>";
-        for(var j = 0; j < questions[i]["options"].length; j++){
-            questionText += "<input type='radio' name='question" + questions[i]["number"] + "' value='" + questions[i]["options"][j][0] + "'>";
-            questionText += "<label>" + questions[i]["options"][j][0] + ": " + questions[i]["options"][j][1] + "</label><br>";
+    questionText += "<p id='score'>Correct answers: 0/0</p>";
+    for (var i = 0; i < questions.length; i++) {
+        questionText += "<div class='question' id='question" + questions[i].number + "'>";
+        questionText += "<h3>Question " + questions[i].number + "</h3>";
+        questionText += "<p>" + questions[i].text + "</p>";
+
+        for (var j = 0; j < questions[i].options.length; j++) {
+            questionText += "<input type='radio' name='question" + questions[i].number + "' value='" + questions[i].options[j][0] + "'>";
+            questionText += "<label>" + questions[i].options[j][1] + "</label><br>";
         }
+
+        // Add a Submit button for each question, initially hidden
+        questionText += "<button id='submitAnswer" + questions[i].number +"' style='display:none;' onclick='submitAnswer(" + questions[i].number + ")'>Submit</button>";
+        questionText += "</div>";
     }
+
     quizText.innerHTML = questionText;
+
+    // Add event listener to show the Submit button when a radio button is selected
+    var radios = quizText.getElementsByTagName('input');
+    for (var i = 0; i < radios.length; i++) {
+        radios[i].addEventListener('change', function() 
+        {
+            document.getElementById('submitAnswer' + this.name.slice(-1)).style.display = 'block'; // Show the Submit button
+        });
+    }
+    totalQuestions = Object.keys(answers).length;
+    document.getElementById('score').textContent = "Correct answers: " + score + "/" + totalQuestions;
 });
+
+function submitAnswer(questionNumber) {
+    var selectedOption = document.querySelector('input[name="question' + questionNumber + '"]:checked').value;
+    var correctAnswer = answers[questionNumber];
+    var submitButton = document.getElementById('submitAnswer' + questionNumber);
+    
+    var isCorrect = selectedOption === correctAnswer;
+    updateScore(isCorrect); // Update the score
+    
+    if (isCorrect) {
+        submitButton.textContent = "✓";
+        submitButton.style.backgroundColor = "green";
+    } else {
+        submitButton.textContent = "✗";
+        submitButton.style.backgroundColor = "red";
+    }
+
+    submitButton.disabled = true;
+    var options = document.querySelectorAll('input[name="question' + questionNumber + '"]');
+    for (var i = 0; i < options.length; i++) {
+        options[i].disabled = true;
+    }
+}
+
+function updateScore(isCorrect) {
+    if (isCorrect) {
+        score++;
+    }
+    var totalQuestions = Object.keys(answers).length;
+    console.log(answers);
+    console.log(totalQuestions);
+    document.getElementById('score').textContent = "Correct answers: " + score + "/" + totalQuestions;
+}
