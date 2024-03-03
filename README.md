@@ -1,2 +1,2 @@
-# WICHacks-24
+# GenQ
 Project made during WICHacks '24.
