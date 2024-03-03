@@ -33,20 +33,22 @@ When writing bullet points, use a dash followed by a space (e.g., "- This is a b
 When writing paragraphs, separate them with two new lines.
 """
 
-def load_info(subj, top, conc, num, grade, result_type):
+def load_info(subj, top, subtop, conc, num, grade, result_type):
     global grade_level
     global subject
     global topic
+    global subtopic
     global concept
     global num_questions
     global resultType
     grade_level = grade
     subject = subj
     topic = top
+    subtopic = subtop
     concept = conc
     num_questions = num
     resultType = result_type
-    print(f"Grade: {grade_level}, Subject: {subject}, Topic: {topic}, Concept: {concept}, Number of Questions: {num_questions}, Result Type: {resultType}")
+    print(f"Grade: {grade_level}, Subject: {subject}, Topic: {topic}, Subtopic: {subtopic}, Concept: {concept}, Number of Questions: {num_questions}, Result Type: {resultType}")
     match resultType:
         case "quiz":
             make_quiz(num_questions)
@@ -71,9 +73,9 @@ def make_quiz(num_questions):
     return quiz
 def make_study_guide():
     if concept:
-        response = model.generate_content(f"Write a study guide on {concept} in {topic} in {subject} for {grade_level} grade students." + guide_format_instructions)
+        response = model.generate_content(f"Write a study guide on {concept} in {subtopic} in {topic} in {subject} for {grade_level} grade students." + guide_format_instructions)
     else:
-        response = model.generate_content(f"Write a study guide on {topic} in {subject} for {grade_level} grade students." + guide_format_instructions)
+        response = model.generate_content(f"Write a study guide on {subtopic} in {topic} in {subject} for {grade_level} grade students." + guide_format_instructions)
     if response:
         generated_text = response.text
         generated_text = generated_text.replace("*", "")
@@ -83,9 +85,9 @@ def make_study_guide():
 
 def short_answer_question(num_frqs):
     if concept:
-        response = model.generate_content(f"Write {num_frqs} short-answer questions on {concept} in {topic} for {grade_level} grade students." + quiz_format_instructions)
+        response = model.generate_content(f"Write {num_frqs} short-answer questions on {concept} in {subtopic} in {topic} for {grade_level} grade students." + quiz_format_instructions)
     else:
-        response = model.generate_content(f"Write {num_frqs} short-answer questions on {topic} in {subject} for {grade_level} grade students."  + quiz_format_instructions)
+        response = model.generate_content(f"Write {num_frqs} short-answer questions on {subtopic} in {topic} in {subject} for {grade_level} grade students."  + quiz_format_instructions)
     if response:
         generated_text = response.text
         generated_text = generated_text.replace("*", "")

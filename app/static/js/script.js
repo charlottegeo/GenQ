@@ -11,6 +11,7 @@ socket.on('message', function(data) {
 function submitForm() {
     var subject = document.getElementById('subject').value;
     var topic = document.getElementById('topic').value;
+    var subtopic = document.getElementById('subtopic').value;
     var concept = document.getElementById('concept').value;
     var num_questions = document.getElementById('numQuestions').value;
     var grade_level = document.getElementById('gradeLevel').value;
@@ -18,6 +19,7 @@ function submitForm() {
     socket.emit('formSubmitted', {
         subject: subject,
         topic: topic,
+        subtopic: subtopic,
         concept: concept,
         num_questions: num_questions,
         grade_level: grade_level,
@@ -33,5 +35,15 @@ function changeQuizType(){
     } else {
         document.getElementById('numQuestions').disabled = true;
         document.getElementById('formQuestion').textContent = "What material do you want in your study guide?";
+    }
+}
+
+function toggleConcept(){
+    var concept = document.getElementById('concept');
+    //if concept is visible, hide it
+    if(concept.style.display === "block"){
+        concept.style.display = "none";
+    } else {
+        concept.style.display = "block";
     }
 }

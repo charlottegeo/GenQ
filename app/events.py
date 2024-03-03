@@ -11,4 +11,4 @@ def handle_connect():
 
 @socketio.on('formSubmitted')
 def handle_form(data):
-    load_info(data['subject'], data['topic'], data['concept'], data['num_questions'], data['grade_level'], data['result_type'])
+    load_info(data['subject'], data['topic'], data['subtopic'], data['concept'], data['num_questions'], data['grade_level'], data['result_type'])
