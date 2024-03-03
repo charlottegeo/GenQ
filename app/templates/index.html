@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>GenQ</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    </head>
+    <body>
+        <div id="quiz_form">
+            <label for="quizType">Quiz Type:</label>
+            <select id="quizType" name="quizType" onchange="changeQuizType()">
+                <option value="quiz">Practice Quiz</option>
+                <option value="study guide">Study Guide</option>
+            </select>
+            <br><br>
+
+            <!--Change question based on quiz type-->
+            <p id="formQuestion">What material do you want in your quiz?</p>
+            <label for="subject">Subject:</label>
+            <input type="text" id="subject" name="subject"><br><br>
+            <label for="topic">Topic:</label>
+            <input type="text" id="topic" name="topic"><br><br>
+            <label for="concept">Concept:</label>
+            <input type="text" id="concept" name="concept"><br><br>
+
+            <!--Remove numQuestions if it is a study guide-->
+            <label for="numQuestions">Number of Questions:</label>
+            <input type="text" id="numQuestions" name="numQuestions"><br><br>
+            <label for="gradeLevel">Grade Level:</label>
+            <input type="text" id="gradeLevel" name="gradeLevel"><br><br>
+            <button type="submit" onclick="submitForm()">Submit</button>
+        </div>
+    </body>
+</html>
