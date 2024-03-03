@@ -8,7 +8,11 @@
         <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     </head>
     <body>
-        <div id="quiz_form">
+        <div class="header">
+            <h2>Welcome to</h2>
+            <h1>GenQ</h1>
+        </div>
+        <div id="quiz_form" class="form-container">
             <label for="quizType">Quiz Type:</label>
             <select id="quizType" name="quizType" onchange="changeQuizType()">
                 <option value="quiz">Practice Quiz</option>
@@ -40,10 +44,11 @@
             <label id="conceptLbl">Specific Concept:</label>
             <input type="text" id="concept" name="concept"><br><br>
             <label id="numQuestionsLbl">Number of Questions:</label>
-            <input type="text" id="numQuestions" name="numQuestions"><br><br>
-            <button type="submit" onclick="submitForm()">Submit</button>
+            <input type="number" id="numQuestions" name="numQuestions" value="2"><br><br>
+            <button type="submit" class="submit-btn" onclick="submitForm()">Submit</button>
         </div>
-        <div id="studyGuideText"></div>
-        <div id="quizText"></div>
+        <p id="loader" class="loader" style="display: none;"></p>
+        <div id="studyGuideText" class="content"></div>
+        <div id="quizText" class="content"></div>
     </body>
 </html>

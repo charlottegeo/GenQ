@@ -13,7 +13,7 @@ window.onload = function() {
     document.getElementById('subtopic').value = "";
     document.getElementById('subtopic').disabled = true;
     document.getElementById('concept').value = "";
-    document.getElementById('numQuestions').value = "";
+    document.getElementById('numQuestions').value = 2;
     document.getElementById('quizType').value = "quiz";
     document.getElementById("numQuestionsLbl").style.display = "block";
     document.getElementById('numQuestions').style.display = "block";
@@ -39,6 +39,9 @@ function submitForm() {
         result_type: result_type
     });
     document.getElementById('quiz_form').style.display = "none";
+    var header = document.querySelector('.header');
+    header.style.display = 'none';
+    document.getElementById('loader').style.display = "block";
 }
 
 function changeQuizType(){
@@ -70,7 +73,11 @@ function toggleConcept(){
 socket.on('subjects', function(subjects) {
     var subjectSelect = document.getElementById('subject');
     subjects.forEach(function(subject) {
-        var option = new Option(subject.name + " - " + subject.description, subject._id);
+        var subjectText = subject.name;
+        if (subject.description) {
+            subjectText += " - " + subject.description;
+        }
+        var option = new Option(subjectText, subject._id);
         subjectSelect.add(option);
     });
 });
@@ -129,6 +136,7 @@ function changeSubtopic(){
 }
 
 socket.on('studyGuideGenerated', function(data) {
+    document.getElementById('loader').style.display = "none"; // Hide the loader
     var studyGuideText = document.getElementById('studyGuideText');
     let formattedText = data.text.replace(/\n/g, '<br>');
     formattedText = formattedText.replace(/\*(.*?)\*/g, '<b>$1</b>');
@@ -137,6 +145,7 @@ socket.on('studyGuideGenerated', function(data) {
 });
 
 socket.on('quizGenerated', function(data) {
+    document.getElementById('loader').style.display = "none"; // Hide the loader
     var quizText = document.getElementById('quizText');
     var questions = data.quiz[0]; // Assuming this structure from your existing code
     answers = data.quiz[1]; // Assuming this is where correct answers are stored

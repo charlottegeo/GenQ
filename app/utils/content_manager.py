@@ -92,6 +92,8 @@ def make_study_guide():
         response = model.generate_content(f"Write a study guide on {subtopic} in {topic_name} in {subject_name}." + guide_format_instructions)
     if response:
         generated_text = response.text
+        generated_text = generated_text.replace("```html\n", "")
+        generated_text = generated_text.replace("\n```", "")
         socketio.emit('studyGuideGenerated', {'text': generated_text})
     else:
         socketio.emit('studyGuideGenerated', {'text': 'Failed to generate study guide.'})
