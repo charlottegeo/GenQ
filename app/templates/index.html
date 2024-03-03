@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
     <head>
@@ -14,25 +15,35 @@
                 <option value="study guide">Study Guide</option>
             </select>
             <br><br>
-
-            <!--Change question based on quiz type-->
             <p id="formQuestion">What material do you want in your quiz?</p>
             <label for="subject">Subject:</label>
-            <input type="text" id="subject" name="subject"><br><br>
+            <select id="subject" name="subject" onchange="changeSubject()">
+                <option value="" id="subjPlaceholder">Select a Subject</option>
+                <!-- Subjects will be populated here -->
+            </select>
+            <br><br>
             <label for="topic">Topic:</label>
-            <input type="text" id="topic" name="topic"><br><br>
+            <select id="topic" name="topic" onchange="changeTopic()" disabled>
+                <option value="" id="topPlaceholder">Select a Topic</option>
+                <!-- Topics will be populated here -->
+            </select>
+            <br><br>
             <label for="subtopic">Subtopic:</label>
-            <input type="text" id="subtopic" name="subtopic"><br><br>
+            <select id="subtopic" name="subtopic" onchange="changeSubtopic()" disabled>
+                <option value="" id="subPlaceholder">Select a Subtopic</option>
+                <!-- Subtopics will be populated here -->
+            </select>
+            <br><br>
+
             <label for="specificCheckbox">Wanna get MORE specific?</label>
             <input type="checkbox" id="specificCheckbox" onclick="toggleConcept()"><br><br>
-            <label for="concept">Specific Concept:</label>
+            <label id="conceptLbl">Specific Concept:</label>
             <input type="text" id="concept" name="concept"><br><br>
-            <!--Remove numQuestions if it is a study guide-->
-            <label for="numQuestions">Number of Questions:</label>
+            <label id="numQuestionsLbl">Number of Questions:</label>
             <input type="text" id="numQuestions" name="numQuestions"><br><br>
-            <label for="gradeLevel">Grade Level:</label>
-            <input type="text" id="gradeLevel" name="gradeLevel"><br><br>
             <button type="submit" onclick="submitForm()">Submit</button>
         </div>
+        <div id="studyGuideText"></div>
+        <div id="quizText"></div>
     </body>
 </html>

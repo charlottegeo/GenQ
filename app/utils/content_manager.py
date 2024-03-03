@@ -1,54 +1,72 @@
+
+from flask import jsonify
 import google.generativeai as genai
 import dotenv
 import os
 import re
-from transformers import pipeline
+from app import socketio
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-
+from bson.objectid import ObjectId
+from flask_socketio import SocketIO, emit
 uri = os.getenv("MONGO_URI")
 client = MongoClient(uri, server_api=ServerApi('1'))
+db = client.GenQ
 dotenv.load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-pro')
 
-qa_pipeline = pipeline("question-answering")
 
 #Instructions for the AI to format the content such that it can be parsed consistently
 quiz_format_instructions = """
-Generate each question as a separate paragraph.
-Start each question, both multiple-choice and free-response, with a number followed by a period (e.g., "1. What is...").
-List the multiple-choice options below the question, each on a new line and labeled with a letter (e.g., "a. Option 1").
-For free-response questions, simply state the question without any options.
-After all the questions, provide an answer key. Start the answer key with the text "ANSWER KEY" on a new line.
-List the answers in the same order as the questions, each on a new line. Start each answer with the question number, a period, and a space (e.g., "1. Answer to question 1").
-For multiple-choice questions, provide the letter of the correct answer (e.g., "1. a"). Do not include the question number in the answer for multiple-choice questions (e.g., "a" instead of "1. a". Also do not include the answer text for multiple-choice questions (e.g., "a" instead of "1. a. Option 1)
+Please generate a set of questions in HTML format suitable for a web quiz application, focusing exclusively on multiple-choice questions (MCQs). Each question should be clearly presented with a question stem followed by several options, each option being a separate line with a radio button input. Ensure each option is within a <label> tag for accessibility. Use unique names for radio button groups based on the question number and provide a placeholder for the option value.
+
+After generating the questions, provide an answer key in a clear, structured format labeled 'ANSWER KEY:' that can be easily parsed. List the correct option letter for each MCQ.
+
+Example format for MCQs:
+  <div class='question mcq'>
+    <p>1. What is the capital of France?</p>
+    <label><input type='radio' name='q1' value='a'>Paris</label><br>
+    <label><input type='radio' name='q1' value='b'>London</label><br>
+    <label><input type='radio' name='q1' value='c'>Berlin</label><br>
+    <label><input type='radio' name='q1' value='d'>Madrid</label>
+  </div>
+
+ANSWER KEY:
+MCQs:
+1. a
 """
+
 
 guide_format_instructions = """
-When writing key terms, make sure to define them.
-When writing bullet points, use a dash followed by a space (e.g., "- This is a bullet point").
-When writing paragraphs, separate them with two new lines.
+Generate the content in HTML format. When writing key terms, make sure to define them and highlight them using <b> tags (e.g., "<b>Key Term</b>: Definition").
+When writing bullet points, start each point with a dash and a space, and separate them with <br> (e.g., "- This is a bullet point<br>- This is another bullet point").
+When writing paragraphs, separate them with <br><br>.
+Please include <b> tags around key terms or important concepts to emphasize them.
 """
 
-def load_info(subj, top, subtop, conc, num, grade, result_type):
-    global grade_level
-    global subject
-    global topic
+
+def load_info(subj_id, top_id, subtop, conc, num, result_type):
+    global subject_name
+    global topic_name
     global subtopic
     global concept
     global num_questions
     global resultType
-    grade_level = grade
-    subject = subj
-    topic = top
+
+    subject_document = db.Subjects.find_one({"_id": ObjectId(subj_id)})
+    subject_name = subject_document['name'] if subject_document else 'Unknown Subject'
+
+    topic_document = db.Topics.find_one({"_id": ObjectId(top_id)})
+    topic_name = topic_document['name'] if topic_document else 'Unknown Topic'
+
     subtopic = subtop
     concept = conc
     num_questions = num
     resultType = result_type
-    print(f"Grade: {grade_level}, Subject: {subject}, Topic: {topic}, Subtopic: {subtopic}, Concept: {concept}, Number of Questions: {num_questions}, Result Type: {resultType}")
+    print(f"Subject: {subject_name}, Topic: {topic_name}, Subtopic: {subtopic}, Concept: {concept}, Number of Questions: {num_questions}, Result Type: {resultType}")
     match resultType:
         case "quiz":
             make_quiz(num_questions)
@@ -56,117 +74,104 @@ def load_info(subj, top, subtop, conc, num, grade, result_type):
             make_study_guide()
 
 
+
 def make_quiz(num_questions):
     num_questions = int(num_questions)
-    num_mcqs = num_questions * 6 // 10  # 60% of the questions
-    num_frqs = num_questions - num_mcqs  # the rest of the questions
 
-    mcqs = multiple_choice_question(num_mcqs)
-    frqs = short_answer_question(num_frqs)
+    mcqs = multiple_choice_question(num_questions)
+    mcqs = parse_quiz(mcqs)
+    if mcqs:
+        socketio.emit('quizGenerated', {'quiz': mcqs})
+    else:
+        socketio.emit('quizGenerated', {'quiz': 'Failed to generate quiz.'})
 
-    quiz = mcqs + "\n\n" + frqs
-    parsed_quiz = parse_quiz(quiz)
-    for question in parsed_quiz[0]:
-        print(question)
-    for answer in parsed_quiz[1]:
-        print(answer or "No answer found")
-    return quiz
 def make_study_guide():
     if concept:
-        response = model.generate_content(f"Write a study guide on {concept} in {subtopic} in {topic} in {subject} for {grade_level} grade students." + guide_format_instructions)
+        response = model.generate_content(f"Write a study guide on {concept} in {subtopic} in {topic_name} in {subject_name}" + guide_format_instructions)
     else:
-        response = model.generate_content(f"Write a study guide on {subtopic} in {topic} in {subject} for {grade_level} grade students." + guide_format_instructions)
+        response = model.generate_content(f"Write a study guide on {subtopic} in {topic_name} in {subject_name}." + guide_format_instructions)
     if response:
         generated_text = response.text
-        generated_text = generated_text.replace("*", "")
-        print(generated_text)
+        socketio.emit('studyGuideGenerated', {'text': generated_text})
     else:
-        print("No content was generated.")
+        socketio.emit('studyGuideGenerated', {'text': 'Failed to generate study guide.'})
 
 def short_answer_question(num_frqs):
     if concept:
-        response = model.generate_content(f"Write {num_frqs} short-answer questions on {concept} in {subtopic} in {topic} for {grade_level} grade students." + quiz_format_instructions)
+        response = model.generate_content(f"Write {num_frqs} short-answer questions on {concept} in {subtopic} in {topic_name} in {subject_name}." + quiz_format_instructions)
     else:
-        response = model.generate_content(f"Write {num_frqs} short-answer questions on {subtopic} in {topic} in {subject} for {grade_level} grade students."  + quiz_format_instructions)
+        response = model.generate_content(f"Write {num_frqs} short-answer questions on {subtopic} in {topic_name} in {subject_name}."  + quiz_format_instructions)
     if response:
         generated_text = response.text
-        generated_text = generated_text.replace("*", "")
+        generated_text = generated_text.replace("*", "") #AI likes to add * for bolded text, we don't need that
         return generated_text
     else:
         return None
 
 def multiple_choice_question(num_mcqs):
     if concept:
-        response = model.generate_content(f"Write {num_mcqs} multiple choice questions on {concept} in {topic} for {grade_level} grade students." + quiz_format_instructions)
+        response = model.generate_content(f"Write {num_mcqs} multiple choice questions on {concept} in {subtopic} in {topic_name} in {subject_name}." + quiz_format_instructions)
     else:
-        response = model.generate_content(f"Write {num_mcqs} multiple choice questions on {topic} in {subject} for {grade_level} grade students." + quiz_format_instructions)
+        response = model.generate_content(f"Write {num_mcqs} multiple choice questions on {subtopic} in {topic_name} in {subject_name}." + quiz_format_instructions)
+    
     if response:
         generated_text = response.text
-
-        generated_text = generated_text.replace("*", "")
-        mcqs = []
-        for i in range(num_mcqs):
-            mcq = generated_text.split("\n\n")[i]
-            mcqs.append(mcq)
-        return generated_text
+        return generated_text.replace("*", "") #AI likes to add * for bolded text, we don't need that
     else:
         return None
 
-import re
+
 
 def parse_quiz(quiz_text):
-    if "ANSWER KEY" not in quiz_text:
-        print("No answer key found in quiz text.")
-        return [], []
-
-    sections = quiz_text.split("\n\nANSWER KEY\n\n")
-    questions_section = sections[0]
-    answers_section = sections[1] if len(sections) > 1 else ""
-
-    question_blocks = questions_section.split("\n\n")
-    answer_blocks = answers_section.split("\n\n") if answers_section else []
-
+    questions_section, answers_section = quiz_text.split("ANSWER KEY:")
     questions = []
-    for block in question_blocks:
-        lines = block.split("\n")
-        question_text = lines[0]
-        if len(lines) > 1:
-            # This is a multiple choice question
-            options = lines[1:]
-            question_type = "MCQ"
-        else:
-            # This is a free response question
-            options = []
-            question_type = "FRQ"
+    answers = {}
+    question_re = re.compile(r"<div class='question mcq'>\s*<p>(\d+)\. (.+?)</p>(.*?)</div>", re.DOTALL)
+    option_re = re.compile(r"<label><input type='radio' name='\w+' value='(\w+)'>\s*(.+?)</label>")
+    answer_re = re.compile(r"MCQs:\s*((?:\d+\.\s*\w+\s*)*)")
+
+    for match in question_re.finditer(questions_section):
+        question_number, question_text, options_html = match.groups()
+        question_type = "mcq"
+        question_number = int(question_number)
+        
+        options = option_re.findall(options_html)
+        
         questions.append({
             "type": question_type,
-            "question": question_text,
+            "number": question_number,
+            "text": question_text.strip(),
             "options": options
         })
 
-    answers = []
-    for block in answer_blocks:
-        lines = block.split("\n")
-        for line in lines:
-            match = re.match(r"(\d+)\. (.+)", line)
-            if match:
-                question_number = int(match.group(1))
-                answer_text = match.group(2)
-                answers.append({
-                    "question_number": question_number,
-                    "answer": answer_text
-                })
-
+    answer_re = re.compile(r"(\d+)\. (\w)")
+    for match in answer_re.finditer(answers_section):
+        question_number, correct_option = match.groups()
+        answers[int(question_number)] = correct_option.strip()
     return questions, answers
 
-def grade_frq_responses(user_answer, question, correct_answer):
-    result = qa_pipeline({
-        "context" : correct_answer,
-        "question" : question,
-        "answers" : user_answer
-    })
-    correct_answer = result['answer']
-    if correct_answer == user_answer:
-        return True
-    else:
-        return False
+
+def get_subjects():
+    subjects_cursor = db.Subjects.find({}, {'name': 1})
+    subjects = []
+    for subject in subjects_cursor:
+        subject['_id'] = str(subject['_id'])
+        subjects.append(subject)
+    return subjects 
+
+def get_topics(subject_id):
+    topics_cursor = db.Topics.find({"subjectId": subject_id}, {'name': 1, 'description': 1})
+    topics = []
+    for topic in topics_cursor:
+        topic['_id'] = str(topic['_id'])
+        topics.append(topic)
+    return topics
+
+def get_subtopics(topic_id):
+    topic_object_id = ObjectId(topic_id)
+    topic_document = db.Topics.find_one({"_id": topic_object_id}, {'subtopics': 1})
+    subtopics = []
+    if topic_document and 'subtopics' in topic_document:
+        subtopics = topic_document['subtopics']
+    
+    return subtopics
