@@ -18,7 +18,6 @@ def handle_form(data):
 
 @socketio.on('getSubjects')
 def handle_get_subjects():
-    print('Getting subjects')
     subjects = get_subjects()
     socketio.emit('subjects', subjects)
 

@@ -66,7 +66,7 @@ def load_info(subj_id, top_id, subtop, conc, num, result_type):
     concept = conc
     num_questions = num
     resultType = result_type
-    print(f"Subject: {subject_name}, Topic: {topic_name}, Subtopic: {subtopic}, Concept: {concept}, Number of Questions: {num_questions}, Result Type: {resultType}")
+    #print(f"Subject: {subject_name}, Topic: {topic_name}, Subtopic: {subtopic}, Concept: {concept}, Number of Questions: {num_questions}, Result Type: {resultType}")
     match resultType:
         case "quiz":
             make_quiz(num_questions)

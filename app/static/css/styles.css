@@ -88,3 +88,7 @@ body {
 #studyGuideText {
     overflow: auto;
 }
+
+#quizText {
+    overflow: auto;
+}

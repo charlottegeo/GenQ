@@ -20,6 +20,11 @@ window.onload = function() {
     document.getElementById('formQuestion').textContent = "What material do you want in your quiz?";
     document.getElementById('specificCheckbox').checked = false;
     socket.emit('getSubjects');
+    var form = document.getElementById('quiz_form');
+    form.addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the form from being submitted in the default way
+        submitForm(); // Call your existing form submission function
+    });
 
 }
 
@@ -208,7 +213,5 @@ function updateScore(isCorrect) {
         score++;
     }
     var totalQuestions = Object.keys(answers).length;
-    console.log(answers);
-    console.log(totalQuestions);
     document.getElementById('score').textContent = "Correct answers: " + score + "/" + totalQuestions;
 }
